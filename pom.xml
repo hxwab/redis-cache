@@ -8,7 +8,7 @@
     </parent>
     <groupId>com.ctrip.hotel.db.cache</groupId>
     <artifactId>redis-cache-sync-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
     <name>redis-cache-sync-starter</name>
 
@@ -60,12 +60,12 @@
                     <artifactId>vi</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.dianping.cat</groupId>
-                    <artifactId>cat-client</artifactId>
+                    <groupId>org.unidal.framework</groupId>
+                    <artifactId>foundation-service</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.ctrip.framework.apollo</groupId>
-                    <artifactId>apollo-client</artifactId>
+                    <groupId>com.dianping.cat</groupId>
+                    <artifactId>cat-client</artifactId>
                 </exclusion>
             </exclusions>
             <!--<optional>true</optional>-->
@@ -82,14 +82,25 @@
             <version>1.5.7.RELEASE</version>
             <optional>true</optional>
         </dependency>
+        <!--解决依赖版本冲突的问题-->
         <dependency>
+            <groupId>com.ctrip.framework</groupId>
+            <artifactId>vi</artifactId>
+            <version>0.10.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.unidal.framework</groupId>
+            <artifactId>foundation-service</artifactId>
+            <version>3.0.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.dianping.cat</groupId>
+            <artifactId>cat-client</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+      <!--  <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
-            <version>1.8.9</version>
-        </dependency>
-       <!-- <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
             <version>1.8.9</version>
         </dependency>-->
     </dependencies>

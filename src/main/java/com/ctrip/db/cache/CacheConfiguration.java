@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 public class CacheConfiguration {
 
     private Logger LOGGER = LoggerFactory.getLogger(CacheConfiguration.class);
-    public static final String CACHE_CONFIG_KEY = "dlt_redis_cache_config";
+    public static String CACHE_CONFIG_KEY = "dlt_redis_cache_config";
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     @PostConstruct
     public void loadCacheConfig(){
