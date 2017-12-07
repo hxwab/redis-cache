@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ctrip.db.cache</groupId>
     <artifactId>redis-cache-sync-starter</artifactId>
-    <version>1.0</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>redis-cache-sync-starter</name>
