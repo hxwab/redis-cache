@@ -25,7 +25,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot</artifactId>
-            <version>1.4.3.RELEASE</version>
+            <version>1.5.7.RELEASE</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -50,13 +50,25 @@
             <groupId>com.ctrip.credis</groupId>
             <artifactId>credis</artifactId>
             <version>2.5.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.ctrip.framework</groupId>
+                    <artifactId>vi</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.dianping.cat</groupId>
+                    <artifactId>cat-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.ctrip.framework.apollo</groupId>
+                    <artifactId>apollo-client</artifactId>
+                </exclusion>
+            </exclusions>
             <!--<optional>true</optional>-->
-        </dependency>
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>2.8.2</version>
-           <!-- <optional>true</optional>-->
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -75,11 +87,11 @@
             <artifactId>aspectjrt</artifactId>
             <version>1.8.9</version>
         </dependency>
-        <dependency>
+       <!-- <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
             <version>1.8.9</version>
-        </dependency>
+        </dependency>-->
     </dependencies>
 
 
