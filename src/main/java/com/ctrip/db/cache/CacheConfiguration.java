@@ -2,13 +2,13 @@ package com.ctrip.db.cache;
 
 
 import com.ctrip.db.cache.redis.CacheManager;
+import com.ctrip.db.cache.util.DefaultCacheOptions;
 import com.ctrip.db.cache.util.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.PostConstruct;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -22,9 +22,9 @@ import java.util.concurrent.Executors;
 public class CacheConfiguration {
 
     private Logger LOGGER = LoggerFactory.getLogger(CacheConfiguration.class);
-    public static String CACHE_CONFIG_KEY = "dlt_redis_cache_config";
+    public static String CACHE_CONFIG_KEY = DefaultCacheOptions.DEFAULT_CACHE_CONFIG_KEY;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
-    @PostConstruct
+
     public void loadCacheConfig(){
         try {
             if(RedisUtil.existsKey(CACHE_CONFIG_KEY)){

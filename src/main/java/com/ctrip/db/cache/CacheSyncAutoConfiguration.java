@@ -4,19 +4,22 @@ import com.ctrip.db.cache.http.CacheCommonController;
 import com.ctrip.db.cache.http.HttpCacheManager;
 import com.ctrip.db.cache.intercept.RedisCacheIntercepter;
 import com.ctrip.db.cache.redis.RedisCacheHandler;
+import com.ctrip.db.cache.redis.RedisOperateCommand;
 import com.ctrip.db.cache.redis.RedisOperateProxy;
 import com.ctrip.db.cache.util.CacheConfigProperties;
 import com.ctrip.db.cache.util.RedisUtil;
 import credis.java.client.CacheProvider;
 import credis.java.client.util.CacheFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.*;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
@@ -24,23 +27,15 @@ import org.springframework.util.StringUtils;
 import java.util.Arrays;
 
 @Configuration
-@EnableConfigurationProperties(value = CacheConfigProperties.class)
-@ConditionalOnProperty(prefix = "db.cache",name = "redis.cluster-name")
+@ImportAutoConfiguration(SwaggerUIConfiguration.class)
+//@EnableConfigurationProperties(value = CacheConfigProperties.class)
+@PropertySource("classpath:cache-sync.properties")
 @ConditionalOnBean(value={SqlSessionFactoryBean.class})
 public class CacheSyncAutoConfiguration implements InitializingBean{
-
-    @Autowired
-    private CacheConfigProperties cacheConfigProperties;
-
-    @Autowired
-    private Environment environment;
+    private static final Logger LOGGER = LoggerFactory.getLogger(CacheSyncAutoConfiguration.class);
 
     @Autowired
     private GenericApplicationContext applicationContext;
-    @Bean
-    public CacheConfiguration initCacheConfigBean(){
-        return new CacheConfiguration();
-    }
 
     @Bean
     public RedisCacheIntercepter initRedisCacheIntercepter() throws Exception {
@@ -56,6 +51,12 @@ public class CacheSyncAutoConfiguration implements InitializingBean{
         return redisCacheIntercepter;
     }
 
+    @ConditionalOnProperty(prefix = "db.cache",name = "redis.cluster-name")
+    @Bean
+    public CacheConfigProperties getCacheConfigProperties() {
+        return new CacheConfigProperties();
+    }
+
     @Bean
     public RedisCacheHandler initRedisCacheHandler(){
         return new RedisCacheHandler();
@@ -66,12 +67,14 @@ public class CacheSyncAutoConfiguration implements InitializingBean{
         return new RedisOperateProxy();
     }
 
+    @ConditionalOnBean(CacheConfigProperties.class)
     @Bean
     public HttpCacheManager initHttpCacheManager(){
         return new HttpCacheManager();
     }
 
 
+    @ConditionalOnBean(CacheConfigProperties.class)
     @Bean
     public CacheCommonController initCacheCommonController(){
         return new CacheCommonController();
@@ -79,13 +82,6 @@ public class CacheSyncAutoConfiguration implements InitializingBean{
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        String redisClusterName = cacheConfigProperties.getClusterName();
-        CacheProvider cacheProvider = CacheFactory.GetProvider(redisClusterName);
-        RedisUtil.setCacheProvider(cacheProvider);
-        String configKey = cacheConfigProperties.getConfigKeyName();
-        if(!StringUtils.isEmpty(configKey)){
-            CacheConfiguration.CACHE_CONFIG_KEY = configKey;
-        }
-
+        LOGGER.info("缓存同步框架自动注册CacheSyncAutoConfiguration...");
     }
 }

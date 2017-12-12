@@ -4,6 +4,10 @@ package com.ctrip.db.cache.http;
 import com.ctrip.db.cache.compress.DataCompressFactory;
 import com.ctrip.db.cache.util.DefaultCacheOptions;
 import com.ctrip.db.cache.util.RedisUtil;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -22,6 +26,7 @@ import java.util.Set;
  */
 @RestController
 @RequestMapping("/cache")
+@Api(description="缓存常用通用工具")
 public class CacheCommonController {
     private Logger LOGGER = LoggerFactory.getLogger(HttpCacheManager.class);
 
@@ -30,6 +35,7 @@ public class CacheCommonController {
      * @param dataList
      * @return
      */
+    @ApiOperation(value = "压缩数据",nickname = "zhaoyong")
     @RequestMapping(value="/compressData",method= RequestMethod.POST)
     public Object compressData(@RequestBody List<Object> dataList){
         return  DataCompressFactory.getDataCompressData("gzip",dataList);
@@ -41,7 +47,8 @@ public class CacheCommonController {
      * @param hashKey
      * @return
      */
-    @RequestMapping(value="/uncompressData")
+    @ApiOperation(value = "解压缩数据",notes = "解压缩数据",nickname = "zhao.yong")
+    @RequestMapping(value="/uncompressData",method = RequestMethod.GET)
     public Object compressData(String key,String hashKey){
         if(StringUtils.isEmpty(hashKey)){
             try {
@@ -62,7 +69,8 @@ public class CacheCommonController {
      * @param keyPattern
      * @return
      */
-    @RequestMapping("/getKeys")
+    @ApiOperation(value = "解压缩数据",notes = "解压缩数据,只能在测试和开发环境使用",nickname = "zhao.yong")
+    @RequestMapping(value="/getKeys",method = RequestMethod.GET)
     public  Set<String>  getKeys(String keyPattern){
         try {
            return RedisUtil.keys(keyPattern);
@@ -77,7 +85,8 @@ public class CacheCommonController {
      * @param key
      * @return
      */
-    @RequestMapping("/getKeyShard")
+    @ApiOperation(value = "获取Key的分片ShardKey",notes = "获取Key的分片ShardKey",nickname = "zhao.yong")
+    @RequestMapping(value="/getKeyShard",method = RequestMethod.GET)
     public String getKeyShard(String key){
         int keyOffset =  Math.abs(Objects.hashCode(key)) % DefaultCacheOptions.VIRTUAL_NODE_NUMBER;
         return "shard"+keyOffset;
@@ -87,6 +96,7 @@ public class CacheCommonController {
      * @param keyList
      * @return
      */
+    @ApiOperation(value = "删除redis中字符串结构数据",notes = "删除redis中字符串结构数据",nickname = "zhao.yong")
     @RequestMapping(value="/deleteStrData",method = RequestMethod.POST)
     public  String  deleteStrData(@RequestBody  List<String> keyList){
         String result = "";
@@ -101,6 +111,12 @@ public class CacheCommonController {
         return result;
     }
 
+    /**
+     * 删除Hash结构的数据
+     * @param hashDataRequest
+     * @return
+     */
+    @ApiOperation(value = "删除Hash结构的数据",notes = "删除Hash结构的数据",nickname = "zhao.yong")
     @RequestMapping(value="/deleteHashData",method = RequestMethod.POST)
     public  String  deleteHashData(@RequestBody  HashDataRequest hashDataRequest){
         String result = "";

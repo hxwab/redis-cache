@@ -3,6 +3,7 @@ package com.ctrip.db.cache.redis;
 import com.alibaba.fastjson.JSON;
 import com.ctrip.db.cache.annotation.RedisCacheProperty;
 import com.ctrip.db.cache.compress.DataCompressFactory;
+import com.ctrip.db.cache.util.CommonUtils;
 import com.ctrip.db.cache.util.JSONUtil;
 import com.ctrip.db.cache.util.RedisUtil;
 import com.ctrip.framework.clogging.agent.util.RandomUtil;
@@ -387,7 +388,7 @@ private String[] getNullProperties(Object source){
             keySuffix = redisCacheProperty.getShardKeyName()+KEY_SEPERATOR+shardKey;
         }else{
             //默认分片策略
-            int keyOffset =  Math.abs(Objects.hashCode(redisCacheProperty.getId())) % redisCacheProperty.getShardNum();
+            long keyOffset = CommonUtils.getHashCode(redisCacheProperty.getId()) % redisCacheProperty.getShardNum();
             keySuffix =  "shard"+keyOffset;
         }
         return redisCacheProperty.getCacheKey() + KEY_SEPERATOR + keySuffix;

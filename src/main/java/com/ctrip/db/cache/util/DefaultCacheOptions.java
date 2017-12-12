@@ -4,6 +4,11 @@ package com.ctrip.db.cache.util;
  * 默认缓存选项
  */
 public final class DefaultCacheOptions {
+
+    /**
+     * 默认缓存配置Key
+     */
+    public static String DEFAULT_CACHE_CONFIG_KEY = "dlt_redis_cache_config";
     /**
      * 分片的数据，默认100个分片
      */
