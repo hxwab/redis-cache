@@ -1,6 +1,6 @@
 # Redis Cache Synchronous Framework
 
-## 基于MyBatis+springboot+redis实现的缓存同步
+# 一.基于MyBatis+springboot+redis实现的缓存同步
 ### 底层基于Mybatis拦截器机制实现缓存同步操作，满足大部分业务场景需求，所有的缓存接口配置都在redis中进行配置， 从而实现缓存配置驱动开发。
 ## Framework Fetures：
 - 采用非侵入式，微内核+插件体系结构开发，基于mybatis拦截器实现DAL层系统流量拦截
@@ -16,4 +16,18 @@
 - 为了便于缓存的管理和维护，提供多种http endpoints,实现端点智能化运维管理方式。
 - 提供零侵入、零开发、零发布方式，配置立即生效方式实现缓存同步。
 
-## 文档地址：http://conf.ctripcorp.com/pages/viewpage.action?pageId=145929670
+# 二.开发指南
+
+### 1.在应用的pom.xml文件中增加以下依赖:
+####        &lt;dependency&gt;
+####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;groupId&gt;com.ctrip.hotel.db.cache&lt;/groupId&gt;
+####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;artifactId&gt;redis-cache-sync-starter&lt;/artifactId&gt;
+####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;1.0.2&lt;/version&gt;
+####        &lt;/dependency&gt;
+
+### 2.在应用的配置文件application.properties或者在dataaccess模块的classpath加入cache-sync.properties文件中统一应用加入:
+#### db.cache.redis.cluster-name=HotelDltCacheNew(redis集群的名称)（必须指定）
+#### db.cache.redis.config-key-name=（指定缓存配置Key，默认为dlt_redis_cache_config，可选）
+
+
+# 三.文档地址：http://conf.ctripcorp.com/pages/viewpage.action?pageId=145929670
