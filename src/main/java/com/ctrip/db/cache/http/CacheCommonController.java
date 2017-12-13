@@ -69,7 +69,7 @@ public class CacheCommonController {
      * @param keyPattern
      * @return
      */
-    @ApiOperation(value = "解压缩数据",notes = "解压缩数据,只能在测试和开发环境使用",nickname = "zhao.yong")
+    @ApiOperation(value = "获取模糊匹配到的Key",notes = "获取模糊匹配到的Key,只能在测试和开发环境使用",nickname = "zhao.yong")
     @RequestMapping(value="/getKeys",method = RequestMethod.GET)
     public  Set<String>  getKeys(String keyPattern){
         try {
@@ -96,7 +96,7 @@ public class CacheCommonController {
      * @param keyList
      * @return
      */
-    @ApiOperation(value = "删除redis中字符串结构数据",notes = "删除redis中字符串结构数据",nickname = "zhao.yong")
+    @ApiOperation(value = "删除redis中string结构数据",notes = "删除redis中string结构数据",nickname = "zhao.yong")
     @RequestMapping(value="/deleteStrData",method = RequestMethod.POST)
     public  String  deleteStrData(@RequestBody  List<String> keyList){
         String result = "";
