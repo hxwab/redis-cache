@@ -53,7 +53,7 @@ public class RedisOperateProxy {
         BeanUtils.copyProperties(cacheProperty,targetCache);
         SecondLevelCacheStrategy.setDataType(targetCache);
         SecondLevelCacheStrategy.setExpireTime(targetCache);
-        saveRedisData(Arrays.asList(cacheProperty),paramObject);
+        saveRedisData(Arrays.asList(targetCache),paramObject);
     }
 
     public void updateRedisData(RedisCacheProperty cacheProperty,Object paramObject){

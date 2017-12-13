@@ -27,7 +27,7 @@ public class SwaggerUIConfiguration {
 
     private ApiInfo buildApiInfo(){
         return new ApiInfoBuilder()
-                .title("Redis Distribution Cache Synchronouse Framework管理文档")
+                .title("Redis Distribution Cache Synchronous Framework管理文档")
                 .description("基于Redis分布式缓存同步框架，源码链接：http://git.dev.sh.ctripcorp.com/hotel-dlt/redis-cache-sync-starter")
                 .termsOfServiceUrl("http://conf.ctripcorp.com/pages/viewpage.action?pageId=145929670")
                 .version("1.0")
