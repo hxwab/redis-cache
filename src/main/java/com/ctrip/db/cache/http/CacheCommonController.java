@@ -2,11 +2,9 @@ package com.ctrip.db.cache.http;
 
 
 import com.ctrip.db.cache.compress.DataCompressFactory;
-import com.ctrip.db.cache.util.DefaultCacheOptions;
+import com.ctrip.db.cache.util.CommonUtils;
 import com.ctrip.db.cache.util.RedisUtil;
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -87,8 +84,8 @@ public class CacheCommonController {
      */
     @ApiOperation(value = "获取Key的分片ShardKey",notes = "获取Key的分片ShardKey",nickname = "zhao.yong")
     @RequestMapping(value="/getKeyShard",method = RequestMethod.GET)
-    public String getKeyShard(String key){
-        int keyOffset =  Math.abs(Objects.hashCode(key)) % DefaultCacheOptions.VIRTUAL_NODE_NUMBER;
+    public String getKeyShard(String key,Integer shardNum){
+        long keyOffset =  CommonUtils.getHashCode(key) % shardNum;
         return "shard"+keyOffset;
     }
     /**
