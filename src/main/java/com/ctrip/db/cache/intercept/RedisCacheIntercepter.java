@@ -27,9 +27,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Statement;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,111 +68,144 @@ public class RedisCacheIntercepter implements Interceptor {
         Object target = invocation.getTarget();
         Object result;
         if(target instanceof StatementHandler){
-            RoutingStatementHandler statementHandler = (RoutingStatementHandler)target;
-            BoundSql boundSql = statementHandler.getBoundSql();
-            Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
-            MappedStatement mappedStatement = MAPPER_STATEMENT_HOLDER.get();
+            result = handleUpdateRequest(invocation,target);
+        }else{
+            result = handleQueryRequest(invocation);
+        }
+        return result;
+    }
+
+    /**
+     * 处理更新请求
+     * @param invocation
+     * @param target
+     * @return
+     * @throws Exception
+     */
+    private Object handleUpdateRequest(Invocation invocation,Object target) throws Exception {
+        Object result;
+        RoutingStatementHandler statementHandler = (RoutingStatementHandler)target;
+        BoundSql boundSql = statementHandler.getBoundSql();
+        Object parameterObject = statementHandler.getParameterHandler().getParameterObject();
+        MappedStatement mappedStatement = MAPPER_STATEMENT_HOLDER.get();
+        String sqlId = mappedStatement.getId();
+        //如果缓存不存在或者缓存开关关闭
+        if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId) || !checkRedisSwitch()){
+            return invocation.proceed();
+        }
+        result = invocation.proceed();
+        //从配置文件读取
+        List<RedisCacheProperty> cachePropertyList = redisCacheHandler.checkRedisCacheConfig(boundSql,sqlId, parameterObject);
+        if(!CollectionUtils.isEmpty(cachePropertyList)){
+            //保存Redis数据
+            syncRedisCacheData(cachePropertyList,parameterObject,mappedStatement);
+        }
+        MAPPER_STATEMENT_HOLDER.remove();
+        return result;
+    }
+
+
+    /**
+     * 处理查询请求
+     * @param invocation
+     * @return
+     * @throws Exception
+     */
+    private Object handleQueryRequest(Invocation invocation) throws Exception {
+        MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
+        //如果是查询语句
+        if(SqlCommandType.SELECT.equals(mappedStatement.getSqlCommandType())){
+            Object paramObj = invocation.getArgs()[1];
             String sqlId = mappedStatement.getId();
-            //如果缓存不存在或者缓存开关关闭
             if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId) || !checkRedisSwitch()){
                 return invocation.proceed();
             }
-            result = invocation.proceed();
+
+            BoundSql boundSql = mappedStatement.getBoundSql(paramObj);
             //从配置文件读取
-            List<RedisCacheProperty> cachePropertyList = redisCacheHandler.checkRedisCacheConfig(boundSql,sqlId, parameterObject);
-           /* if(CollectionUtils.isEmpty(cachePropertyList)){
-                //注解读取
-                cachePropertyList = redisCacheHandler.checkRedisCacheAnnoation(boundSql,sqlId, parameterObject);
-            }*/
-            if(!CollectionUtils.isEmpty(cachePropertyList)){
-                //保存Redis数据
-                syncRedisCacheData(cachePropertyList,parameterObject,mappedStatement);
+            List<RedisCacheProperty> cachePropertyList = redisCacheHandler.checkRedisCacheConfig(boundSql,sqlId, paramObj);
+            RedisCacheProperty cacheProperty = null;
+            if(CollectionUtils.isEmpty(cachePropertyList)){
+                //注解处理
+                //cachePropertyList = redisCacheHandler.checkRedisCacheAnnoation(boundSql,sqlId, paramObj);
+            }else{
+                cacheProperty = cachePropertyList.get(0);
             }
-            MAPPER_STATEMENT_HOLDER.remove();
-        }else{
-            MappedStatement mappedStatement = (MappedStatement) invocation.getArgs()[0];
-            //如果是查询语句
-            if(SqlCommandType.SELECT.equals(mappedStatement.getSqlCommandType())){
-                Object paramObj = invocation.getArgs()[1];
-                String sqlId = mappedStatement.getId();
-                if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId) || !checkRedisSwitch()){
-                    return invocation.proceed();
+            Object cacheData;
+            //没有缓存属性对象，则从DB查询
+            if(cacheProperty ==  null){
+                cacheData = invocation.proceed();
+            }else{
+                //其他的DB查询条件
+                List<Condition> conditionList = new LinkedList<>();
+                AtomicBoolean checkSecondCache = new AtomicBoolean(false);
+                //从redis获取对象
+                cacheData = queryRedisCacheData(cacheProperty, conditionList, checkSecondCache);
+                //如果是in查询即在一级和二级缓存
+                if(cacheData!= null && cacheProperty.isInConditionClause()
+                        && CollectionUtils.isEmpty(conditionList)){
+                    cacheData = filterResultRecord(cacheData,cacheProperty);
+                    return cacheData;
                 }
 
-                BoundSql boundSql = mappedStatement.getBoundSql(paramObj);
-                //从配置文件读取
-                List<RedisCacheProperty> cachePropertyList = redisCacheHandler.checkRedisCacheConfig(boundSql,sqlId, paramObj);
-                RedisCacheProperty cacheProperty = null;
-                if(CollectionUtils.isEmpty(cachePropertyList)){
-                    //注解处理
-                    //cachePropertyList = redisCacheHandler.checkRedisCacheAnnoation(boundSql,sqlId, paramObj);
-                }else{
-                    cacheProperty = cachePropertyList.get(0);
+                //数据在二级缓存
+                if(!cacheProperty.isInConditionClause() && checkSecondCache.get()){
+                    return cacheData;
                 }
-                Object cacheData;
-                //没有缓存属性对象，则从DB查询
-                if(cacheProperty ==  null){
-                    cacheData = invocation.proceed();
-                }else{
-                    //其他的DB查询条件
-                    List<Condition> conditionList = new LinkedList<>();
-                    //从redis获取对象
-                     cacheData = queryRedisCacheData(cacheProperty,conditionList);
-                    //是否为[] List
-                    boolean checkFlag = cacheData != null && (cacheData instanceof List) && CollectionUtils.isEmpty((List) cacheData);
 
-                    //如果不存在缓存，加入缓存
-                    if(cacheData == null || (checkFlag && cacheProperty.getExpireTime()==0)){
-                        //判断过滤条件是否为空
-                        cacheData = saveRedisData(mappedStatement,boundSql,invocation,cacheProperty);
-                        cacheData = filterResultRecord(cacheData,cacheProperty);
-                    }else{
-                        //如果包含DB查询
-                        if(!CollectionUtils.isEmpty(conditionList)){
-                            JdbcInterceptOperateHandler jdbcInterceptOperateHandler = new JdbcInterceptOperateHandler(mappedStatement.getConfiguration().getEnvironment().getDataSource());
-                            Object jdbcData = jdbcInterceptOperateHandler.jdbcQueryHandleForCondition(boundSql, conditionList, cacheProperty);
-                            if(jdbcData!= null){
-                                 if(cacheData!= null && cacheData instanceof List){
-                                    List resultDataList = (List) cacheData;
-                                     List allResultList = new LinkedList(resultDataList);
-                                     if(jdbcData instanceof List){
-                                         allResultList.addAll((List)jdbcData);
-                                     }else{
-                                         allResultList.add(jdbcData);
-                                     }
-                                     cacheData = allResultList;
+                //是否为[] List
+                boolean checkFlag = cacheData != null && (cacheData instanceof List) && CollectionUtils.isEmpty((List) cacheData);
+
+                //如果不存在缓存，加入缓存
+                if(cacheData == null || (checkFlag && cacheProperty.getExpireTime()==0)){
+                    //判断过滤条件是否为空
+                    cacheData = saveRedisData(mappedStatement,boundSql,invocation,cacheProperty);
+                    cacheData = filterResultRecord(cacheData,cacheProperty);
+                }else{
+                    //如果包含DB查询
+                    if(!CollectionUtils.isEmpty(conditionList)){
+                        JdbcInterceptOperateHandler jdbcInterceptOperateHandler = new JdbcInterceptOperateHandler(mappedStatement.getConfiguration().getEnvironment().getDataSource());
+                        Object jdbcData = jdbcInterceptOperateHandler.jdbcQueryHandleForCondition(boundSql, conditionList, cacheProperty);
+                        if(jdbcData!= null){
+                            if(cacheData!= null && cacheData instanceof List){
+                                List resultDataList = (List) cacheData;
+                                List allResultList = new LinkedList(resultDataList);
+                                if(jdbcData instanceof List){
+                                    allResultList.addAll((List)jdbcData);
                                 }else{
-                                     cacheData = jdbcData;
-                                 }
-                                 //同步DB的数据到Redis缓存
-                                cacheProperty.setId(conditionList.get(0).getValue());
-                                RedisCacheProperty targetCache = new RedisCacheProperty();
-                                BeanUtils.copyProperties(cacheProperty,targetCache);
-                                 //处理二级空缓存
-                                 if(jdbcData instanceof List && ((List)jdbcData).size() == 0){
-                                     SecondLevelCacheStrategy.setDataType(targetCache);
-                                     SecondLevelCacheStrategy.setExpireTime(targetCache);
-                                 }
-                                redisOperateCommand.saveRedisData(Arrays.asList(targetCache),jdbcData);
+                                    allResultList.add(jdbcData);
+                                }
+                                cacheData = allResultList;
+                            }else{
+                                cacheData = jdbcData;
                             }
-
+                            //同步DB的数据到Redis缓存
+                            cacheProperty.setId(conditionList.get(0).getValue());
+                            RedisCacheProperty targetCache = new RedisCacheProperty();
+                            BeanUtils.copyProperties(cacheProperty,targetCache);
+                            //处理二级空缓存
+                            if(jdbcData instanceof List && ((List)jdbcData).size() == 0){
+                                SecondLevelCacheStrategy.setDataType(targetCache);
+                                SecondLevelCacheStrategy.setExpireTime(targetCache);
+                            }
+                            redisOperateCommand.saveRedisData(Arrays.asList(targetCache),jdbcData);
                         }
-                        cacheData = filterResultRecord(cacheData,cacheProperty);
-                    }
 
+                    }
+                    cacheData = filterResultRecord(cacheData,cacheProperty);
                 }
-                if(!(cacheData instanceof List)){
-                    return Arrays.asList(cacheData);
-                }
-                return cacheData;
+
             }
-            //如果是更新语句
-            else{
-                MAPPER_STATEMENT_HOLDER.set(mappedStatement);
-                result = invocation.proceed();
+            if(!(cacheData instanceof List)){
+                return Arrays.asList(cacheData);
             }
+            return cacheData;
         }
-        return result;
+        //如果是更新语句
+        else{
+            MAPPER_STATEMENT_HOLDER.set(mappedStatement);
+           return invocation.proceed();
+        }
     }
 
     /**
@@ -301,7 +336,7 @@ public class RedisCacheIntercepter implements Interceptor {
      * @param cacheProperty
      * @return
      */
-    private Object queryRedisCacheData(RedisCacheProperty cacheProperty,List<Condition> conditionList){
+    private Object queryRedisCacheData(RedisCacheProperty cacheProperty,List<Condition> conditionList,AtomicBoolean checkSecondCache){
         if(cacheProperty == null){
             return null;
         }
@@ -352,7 +387,10 @@ public class RedisCacheIntercepter implements Interceptor {
             data = redisOperateCommand.queryRedisData(cacheProperty);
             //查询二级缓存数据
             if(data == null){
-                redisOperateCommand.querySecondCacheData(cacheProperty);
+                data = redisOperateCommand.querySecondCacheData(cacheProperty);
+                if(data != null){
+                    checkSecondCache.set(true);
+                }
             }
         }
 
