@@ -31,7 +31,7 @@ public class CommonUtils {
      * @param inputData
      * @return
      */
-   public static long getHashCode(Object inputData){
+   public synchronized static long getHashCode(Object inputData){
        if(inputData == null ){
            throw new RuntimeException("CommonUtils。getHashCode 输入数据不能为Null");
        }
@@ -47,5 +47,4 @@ public class CommonUtils {
        }
        return 0;
    }
-
 }
