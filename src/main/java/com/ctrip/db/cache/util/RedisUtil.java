@@ -371,14 +371,24 @@ public class RedisUtil {
      * @return
      */
     public static boolean expire(String key, int ttl) {
-        if (existsKey(key) && ttl >= 0) {
             try {
                 return cacheProvider.expire(key, ttl);
             } catch (Exception e) {
                 throw new RuntimeException("RedisUtilNew.expire 异常", e);
             }
-        }
-        return false;
+    }
+
+    /**
+     * @param key
+     * @param ttl
+     * @return
+     */
+    public static boolean expire(byte[] key, int ttl) {
+            try {
+                return cacheProvider.expire(key, ttl);
+            } catch (Exception e) {
+                throw new RuntimeException("RedisUtilNew.expire 异常", e);
+            }
     }
 
     /**

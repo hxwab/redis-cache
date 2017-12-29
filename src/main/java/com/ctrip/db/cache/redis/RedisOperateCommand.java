@@ -193,8 +193,10 @@ private String[] getNullProperties(Object source){
                              cacheKey = generateCacheKey(singleCacheProperty);
                              if(cacheProperty.getCompressed()){
                                  RedisUtil.set(cacheKey.getBytes(), DataCompressFactory.getDataCompressData(singleCacheProperty.getCompressType(), filterList));
+                                 setExpireTime(cacheKey.getBytes(),cacheProperty);
                              }else{
                                  RedisUtil.set(cacheKey, JSONUtil.toJSONString(filterList, new FastJsonPropertyFilter(singleCacheProperty.getExcludeFields())), String.class);
+                                 setExpireTime(cacheKey,cacheProperty);
                              }
                          }
                      }
@@ -202,8 +204,10 @@ private String[] getNullProperties(Object source){
                      cacheKey = generateCacheKey(cacheProperty);
                      if (cacheProperty.getCompressed()) {
                          RedisUtil.set(cacheKey.getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(), persistObject));
+                         setExpireTime(cacheKey.getBytes(),cacheProperty);
                      } else {
                          RedisUtil.set(cacheKey, JSONUtil.toJSONString(persistObject, new FastJsonPropertyFilter(cacheProperty.getExcludeFields())), String.class);
+                         setExpireTime(cacheKey,cacheProperty);
                      }
                  }
 
@@ -211,9 +215,11 @@ private String[] getNullProperties(Object source){
              case "list":
                  cacheKey = generateShardCacheKey(cacheProperty);
                  if(cacheProperty.getCompressed()) {
-                     RedisUtil.rPush(cacheKey.getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(),persistObject));
+                     RedisUtil.rPush(cacheKey.getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(), persistObject));
+                     setExpireTime(cacheKey.getBytes(),cacheProperty);
                  }else{
                      RedisUtil.rPush(cacheKey, JSONUtil.toJSONString(persistObject, new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                     setExpireTime(cacheKey,cacheProperty);
                  }
                  break;
              case "hash":
@@ -241,45 +247,85 @@ private String[] getNullProperties(Object source){
                              cacheKey = generateShardCacheKey(singleCacheProperty);
                              //判断是否为压缩存储
                              if(cacheProperty.getCompressed()){
-                                 RedisUtil.hSet(cacheKey.getBytes(), generateCacheKey(singleCacheProperty).getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(),result));
+                                 RedisUtil.hSet(cacheKey.getBytes(), generateCacheKey(singleCacheProperty).getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(), result));
+                                 setExpireTime(cacheKey.getBytes(),cacheProperty);
                              }else{
-                                 RedisUtil.hSet(cacheKey, generateCacheKey(singleCacheProperty), JSONUtil.toJSONString(result,new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                                 RedisUtil.hSet(cacheKey, generateCacheKey(singleCacheProperty), JSONUtil.toJSONString(result, new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                                 setExpireTime(cacheKey,cacheProperty);
                              }
+
                          }
                      }
                  }else{
                      cacheKey = generateShardCacheKey(cacheProperty);
-                     RedisUtil.hSet(cacheKey, generateCacheKey(cacheProperty), JSON.toJSONString(persistObject,new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                     //判断是否为压缩存储
+                     if(cacheProperty.getCompressed()){
+                         RedisUtil.hSet(cacheKey.getBytes(), generateCacheKey(cacheProperty).getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(), persistObject));
+                         setExpireTime(cacheKey.getBytes(),cacheProperty);
+                     }else{
+                         String jsonData = JSON.toJSONString(persistObject, new FastJsonPropertyFilter(cacheProperty.getExcludeFields()));
+                         RedisUtil.hSet(cacheKey, generateCacheKey(cacheProperty), jsonData);
+                         setExpireTime(cacheKey,cacheProperty);
+                     }
+
                  }
 
                  break;
              case "set":
                  cacheKey = generateShardCacheKey(cacheProperty);
                  if(cacheProperty.getCompressed()) {
-                     RedisUtil.sadd(cacheKey.getBytes(),DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(),persistObject));
+                     RedisUtil.sadd(cacheKey.getBytes(), DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(), persistObject));
+                     setExpireTime(cacheKey.getBytes(),cacheProperty);
                  }else{
-                     RedisUtil.sadd(cacheKey,JSONUtil.toJSONString(persistObject,new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                     RedisUtil.sadd(cacheKey, JSONUtil.toJSONString(persistObject, new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                     setExpireTime(cacheKey,cacheProperty);
                  }
+
                  break;
              case "sortset":
                  cacheKey = generateShardCacheKey(cacheProperty);
                  double score = RandomUtil.nextDouble() * System.currentTimeMillis();
                  if(cacheProperty.getCompressed()) {
-                     RedisUtil.zadd(cacheKey.getBytes(),score, DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(),persistObject));
+                     RedisUtil.zadd(cacheKey.getBytes(), score, DataCompressFactory.getDataCompressData(cacheProperty.getCompressType(), persistObject));
+                     setExpireTime(cacheKey.getBytes(),cacheProperty);
                  }else{
-                     RedisUtil.zadd(cacheKey,score,JSONUtil.toJSONString(persistObject,new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                     RedisUtil.zadd(cacheKey, score, JSONUtil.toJSONString(persistObject, new FastJsonPropertyFilter(cacheProperty.getExcludeFields())));
+                     setExpireTime(cacheKey,cacheProperty);
                  }
 
                  break;
             default:
                 break;
          }
+
+        }
+
+        /**
+         * 设置缓存过期时间
+         * @param cacheKey
+         * @param cacheProperty
+         */
+        private static void setExpireTime(String cacheKey,RedisCacheProperty cacheProperty){
             //设置key的过期时间
             long expireTime = cacheProperty.getExpireTime();
             if(expireTime > 0){
                 RedisUtil.expire(cacheKey,(int)expireTime);
             }
         }
+
+        /**
+         * 设置缓存过期时间
+         * @param cacheKey
+         * @param cacheProperty
+         */
+        private static void setExpireTime(byte[] cacheKey,RedisCacheProperty cacheProperty){
+            //设置key的过期时间
+            long expireTime = cacheProperty.getExpireTime();
+            if(expireTime > 0){
+                RedisUtil.expire(cacheKey,(int)expireTime);
+            }
+        }
+
 
         /**
          * 执行查询缓存
