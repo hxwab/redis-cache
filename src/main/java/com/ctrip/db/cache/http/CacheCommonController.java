@@ -81,7 +81,7 @@ public class CacheCommonController {
     }
 
     private String scanCursor = "0";
-    @ApiOperation(value = "统计模糊匹配到的所有Key",notes = "统计模糊匹配到的所有Key",nickname = "zhao.yong")
+    @ApiOperation(value = "统计模糊匹配到的所有Key",notes = "统计模糊匹配到的所有Key,扫描游标当currentCursor=0表示数据扫描完毕",nickname = "zhao.yong")
     @RequestMapping(value="/keyShow",method = RequestMethod.POST)
     public KeyQueryResponse keyShow(@RequestBody  KeyQueryRequest keyQueryRequest){
         Integer scanCount = keyQueryRequest.getScanCount();
@@ -102,8 +102,10 @@ public class CacheCommonController {
         scanParams.count(scanCount);
         ScanResult<String> scanResult = RedisUtil.scan(groupId, cursor, scanParams);
         String stringCursor = scanResult.getStringCursor();
-        if(!"0".equals(stringCursor)){
-            keyList.addAll(scanResult.getResult());
+        keyList.addAll(scanResult.getResult());
+        if("0".equals(stringCursor)){
+            return;
+        }else{
             keyCount(groupId,keyPattern,stringCursor,scanCount,keyList);
         }
     }
@@ -121,11 +123,7 @@ public class CacheCommonController {
         scanParams.count(scanCount);
         ScanResult<String> scanResult = RedisUtil.scan(groupId, scanCursor, scanParams);
         scanCursor = scanResult.getStringCursor();
-        if("0".equals(scanCursor)){
-            return Arrays.asList("数据扫描完毕!如果想重新扫描，请将重置参数置为：1");
-        }else{
-            return  scanResult.getResult();
-        }
+        return  scanResult.getResult();
     }
     /**
      * 获取所有keys

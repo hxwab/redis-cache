@@ -90,7 +90,7 @@ public class RedisCacheIntercepter implements Interceptor {
         MappedStatement mappedStatement = MAPPER_STATEMENT_HOLDER.get();
         String sqlId = mappedStatement.getId();
         //如果缓存不存在或者缓存开关关闭
-        if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId) || !checkRedisSwitch()){
+        if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId)){
             return invocation.proceed();
         }
         result = invocation.proceed();
@@ -117,7 +117,7 @@ public class RedisCacheIntercepter implements Interceptor {
         if(SqlCommandType.SELECT.equals(mappedStatement.getSqlCommandType())){
             Object paramObj = invocation.getArgs()[1];
             String sqlId = mappedStatement.getId();
-            if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId) || !checkRedisSwitch()){
+            if(!CacheManager.CACHE_MAPPINGS.containsKey(sqlId)){
                 return invocation.proceed();
             }
 
@@ -287,6 +287,7 @@ public class RedisCacheIntercepter implements Interceptor {
      * 检查缓存控制开关
      * @return
      */
+    @Deprecated
     private boolean checkRedisSwitch() {
         String cacheSwitch = RedisUtil.get(CACHE_SWITCH_KEY, String.class);
         //缓存开关关闭直接访问DB

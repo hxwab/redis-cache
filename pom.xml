@@ -8,7 +8,7 @@
     </parent>
     <groupId>com.ctrip.hotel.db.cache</groupId>
     <artifactId>redis-cache-sync-starter</artifactId>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
     <packaging>jar</packaging>
     <name>redis-cache-sync-starter</name>
 
