@@ -1,10 +1,13 @@
 package com.ctrip.db.cache.http;
 
 
+import com.alibaba.fastjson.JSON;
 import com.ctrip.db.cache.compress.DataCompressFactory;
 import com.ctrip.db.cache.util.CommonUtils;
 import com.ctrip.db.cache.util.RedisUtil;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +16,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
 
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -61,12 +68,71 @@ public class CacheCommonController {
         return null;
     }
 
+    @ApiOperation(value = "统计模糊匹配到的Key数量",notes = "统计模糊匹配到的Key数量",nickname = "zhao.yong")
+    @RequestMapping(value="/keyStatistics",method = RequestMethod.POST)
+    public String keyStatistics(@RequestBody  KeyQueryRequest keyQueryRequest){
+        List<String> keyList = new LinkedList<>();
+        Integer scanCount = keyQueryRequest.getScanCount();
+        if(scanCount == null){
+            scanCount = 100;
+        }
+        keyCount(keyQueryRequest.getGroupId(),keyQueryRequest.getKeyPattern(),"0",scanCount,keyList);
+        return "统计当前key【"+keyQueryRequest.getKeyPattern()+"】总数:" + keyList.size();
+    }
+
+    private String scanCursor = "0";
+    @ApiOperation(value = "统计模糊匹配到的所有Key",notes = "统计模糊匹配到的所有Key",nickname = "zhao.yong")
+    @RequestMapping(value="/keyShow",method = RequestMethod.POST)
+    public KeyQueryResponse keyShow(@RequestBody  KeyQueryRequest keyQueryRequest){
+        Integer scanCount = keyQueryRequest.getScanCount();
+        if(scanCount == null){
+            scanCount = 100;
+        }
+        Integer reset = keyQueryRequest.getReset();
+        if(reset!= null && reset == 1){
+            scanCursor = "0";
+        }
+        List<String> keyList = getKeyList(keyQueryRequest.getGroupId(), keyQueryRequest.getKeyPattern(), scanCount);
+        return new KeyQueryResponse(scanCursor,keyList);
+    }
+
+    private  void keyCount(Integer groupId,String keyPattern,String cursor,Integer scanCount,List<String> keyList){
+        ScanParams scanParams = new ScanParams();
+        scanParams.match(keyPattern);
+        scanParams.count(scanCount);
+        ScanResult<String> scanResult = RedisUtil.scan(groupId, cursor, scanParams);
+        String stringCursor = scanResult.getStringCursor();
+        if(!"0".equals(stringCursor)){
+            keyList.addAll(scanResult.getResult());
+            keyCount(groupId,keyPattern,stringCursor,scanCount,keyList);
+        }
+    }
+
+    /**
+     * 获取Key数据列表
+     * @param groupId
+     * @param keyPattern
+     * @param scanCount
+     * @return
+     */
+    private  List<String> getKeyList(Integer groupId,String keyPattern,Integer scanCount){
+        ScanParams scanParams = new ScanParams();
+        scanParams.match(keyPattern);
+        scanParams.count(scanCount);
+        ScanResult<String> scanResult = RedisUtil.scan(groupId, scanCursor, scanParams);
+        scanCursor = scanResult.getStringCursor();
+        if("0".equals(scanCursor)){
+            return Arrays.asList("数据扫描完毕!如果想重新扫描，请将重置参数置为：1");
+        }else{
+            return  scanResult.getResult();
+        }
+    }
     /**
      * 获取所有keys
      * @param keyPattern
      * @return
      */
-    @ApiOperation(value = "获取模糊匹配到的Key",notes = "获取模糊匹配到的Key,只能在测试和开发环境使用",nickname = "zhao.yong")
+    @ApiOperation(value = "获取模糊匹配到的Key",notes = "获取模糊匹配到的Key,只能在测试和开发环境使用(禁止在生产环境使用)",nickname = "zhao.yong")
     @RequestMapping(value="/getKeys",method = RequestMethod.GET)
     public  Set<String>  getKeys(String keyPattern){
         try {

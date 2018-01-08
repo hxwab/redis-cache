@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import credis.java.client.CacheProvider;
 import credis.java.client.RedisPubSub;
 import org.springframework.util.StringUtils;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
 import redis.clients.jedis.Tuple;
 
 import java.util.HashMap;
@@ -407,6 +409,17 @@ public class RedisUtil {
      */
     public static void subscribe(MessageListener messageListener,String... channels){
         cacheProvider.subscribe(messageListener,channels);
+    }
+
+    /**
+     * 增量迭代扫描key
+     * @param groupId
+     * @param cursor
+     * @param scanParams
+     * @return
+     */
+    public static ScanResult<String> scan(int groupId,String cursor,ScanParams scanParams){
+        return cacheProvider.scan(groupId, cursor, scanParams);
     }
 
     /**
