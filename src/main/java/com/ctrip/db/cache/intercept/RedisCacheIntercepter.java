@@ -437,7 +437,7 @@ public class RedisCacheIntercepter implements Interceptor {
             }
             for(Condition condition : conditionList){
                 String cond = condition.getCondition();
-                if(cond.contains(">") && !cond.contains(">=")){
+                if(cond.contains(">") && !cond.contains(">=") && !cond.contains("<>")){
                     tempField = cond.substring(0,cond.indexOf(">")).trim();
                     dataList = conditionFieldFilter(dataList,tempField,condition,Condition.ConditionOperator.GT);
                     if(CollectionUtils.isEmpty(dataList)){
@@ -449,7 +449,7 @@ public class RedisCacheIntercepter implements Interceptor {
                     if(CollectionUtils.isEmpty(dataList)){
                         return emptyList;
                     }
-                }else if(cond.contains("<") && !cond.contains("<=")){
+                }else if(cond.contains("<") && !cond.contains("<=") && !cond.contains("<>")){
                     tempField = cond.substring(0,cond.indexOf("<")).trim();
                     dataList = conditionFieldFilter(dataList,tempField,condition,Condition.ConditionOperator.LT);
                     if(CollectionUtils.isEmpty(dataList)){
@@ -468,8 +468,13 @@ public class RedisCacheIntercepter implements Interceptor {
                         return emptyList;
                     }
                 }
-                else if(cond.contains("<>")){
-                    tempField = cond.substring(0,cond.indexOf("<>")).trim();
+                else if(cond.contains("<>") || cond.contains("!=")){
+                    if(cond.contains("<>")){
+                        tempField = cond.substring(0,cond.indexOf("<>")).trim();
+                    }else{
+                        tempField = cond.substring(0,cond.indexOf("!=")).trim();
+                    }
+
                     dataList = conditionFieldFilter(dataList,tempField,condition,Condition.ConditionOperator.NE);
                     if(CollectionUtils.isEmpty(dataList)){
                         return emptyList;
