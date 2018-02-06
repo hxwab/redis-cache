@@ -391,12 +391,23 @@ private String[] getNullProperties(Object source){
          */
         private static Object  getResultData(String resultData,RedisCacheProperty cacheProperty){
             if(resultData != null){
-                if(resultData.startsWith("[")) {
-                    return JSON.parseArray(resultData, cacheProperty.getTargetClass());
-                }else if(resultData.startsWith("{")){
-                    return JSON.parseObject(resultData, cacheProperty.getTargetClass());
-                }else{
-                    return resultData;
+                try {
+                    if (resultData.startsWith("[") && resultData.endsWith("]")) {
+                        return JSON.parseArray(resultData, cacheProperty.getTargetClass());
+                    } else if (resultData.startsWith("{") && resultData.endsWith("}")) {
+                        return JSON.parseObject(resultData, cacheProperty.getTargetClass());
+                    } else if((resultData.startsWith("{") && !resultData.endsWith("}"))
+                            || (!resultData.startsWith("{") && resultData.endsWith("}"))
+                            || (resultData.startsWith("[") && !resultData.endsWith("]"))
+                            || (!resultData.startsWith("[") && resultData.endsWith("]"))){
+                        LOGGER.warn("当前查询的缓存数据格式有问题，请查看当前json数据格式是否正确！ resultData:{}",resultData);
+                        return  null;
+                    } else{
+                        return resultData;
+                    }
+                } catch (Exception e) {
+                    LOGGER.warn("当前查询的缓存数据 resultData:{},异常信息:{}",resultData,e.getMessage());
+                    return null;
                 }
             }
             return null;
