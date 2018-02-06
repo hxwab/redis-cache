@@ -22,7 +22,7 @@
 ####        &lt;dependency&gt;
 ####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;groupId&gt;com.ctrip.hotel.db.cache&lt;/groupId&gt;
 ####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;artifactId&gt;redis-cache-sync-starter&lt;/artifactId&gt;
-####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;1.0.2&lt;/version&gt;
+####      &nbsp;&nbsp;&nbsp;&nbsp;&lt;version&gt;1.0.10&lt;/version&gt;
 ####        &lt;/dependency&gt;
 
 ### 2.在应用的配置文件application.properties或者在dataaccess模块的classpath加入cache-sync.properties文件中统一应用加入:
