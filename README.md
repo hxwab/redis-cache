@@ -29,5 +29,3 @@
 #### db.cache.redis.cluster-name=HotelDltCacheNew(redis集群的名称)（必须指定）
 #### db.cache.redis.config-key-name=（指定缓存配置Key，默认为dlt_redis_cache_config，可选）
 
-
-# 三.文档地址：http://conf.ctripcorp.com/pages/viewpage.action?pageId=145929670
